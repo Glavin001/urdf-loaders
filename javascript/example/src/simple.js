@@ -14,10 +14,11 @@ import {
     LoadingManager,
     MathUtils,
 } from 'three';
+import * as CANNON from 'cannon-es'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import URDFLoader from '../../src/URDFLoader.js';
 
-let scene, camera, renderer, robot, controls;
+let scene, camera, renderer, robot, controls, world, mesh, body;
 
 init();
 render();
@@ -36,6 +37,25 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
+
+    world = new CANNON.World({
+        gravity: new CANNON.Vec3(0, -9.82, 0), // m/s²
+    });
+
+    const geometry = new THREE.BoxBufferGeometry(2, 2, 2)
+    const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+
+    mesh = new THREE.Mesh(geometry, material)
+    scene.add(mesh)
+
+    const shape = new CANNON.Box(new CANNON.Vec3(1, 1, 1))
+    body = new CANNON.Body({
+      mass: 1,
+    })
+    body.addShape(shape)
+    body.angularVelocity.set(0, 10, 0)
+    body.angularDamping = 0.5
+    world.addBody(body)
 
     const directionalLight = new DirectionalLight(0xffffff, 1.0);
     directionalLight.castShadow = true;
@@ -105,9 +125,27 @@ function onResize() {
 
 }
 
+const timeStep = 1 / 60; // seconds
+let lastCallTime;
 function render() {
 
     requestAnimationFrame(render);
+
+    const time = performance.now() / 1000 // seconds
+    if (!lastCallTime) {
+      world.step(timeStep)
+    } else {
+      const dt = time - lastCallTime
+      world.step(timeStep, dt)
+    }
+    lastCallTime = time;  
+
+    // Copy coordinates from cannon.js to three.js
+    mesh.position.copy(body.position)
+    mesh.quaternion.copy(body.quaternion)
+
+    console.log('body', body.position);
+    
     renderer.render(scene, camera);
 
 }

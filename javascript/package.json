@@ -57,5 +57,7 @@
     "typescript": "^3.9.7",
     "rollup": "^2.29.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "cannon-es": "^0.18.0"
+  }
 }
